@@ -17,9 +17,19 @@ def fetch_news(query, api_key):
     response = requests.get(url)
     return response.json()
 
+def extract_articles(raw_json):
+    articles = []
+    for article in raw_json.get("results",[]):
+        articles.append({
+            "article_id" : article["article_id"] ,
+            "link" : article["link"],
+            "description" : article["description"] ,
+            "title" : article["title"] ,
+            "keywords" : article["keywords"]
+        })
+        return articles
+
 if __name__ == "__main__":
     query = input("Enter your search query: ")
-    with open("news.json", "w") as f:
-        json.dump(fetch_news(query, load_api_key()), f, indent=4)
-    data = fetch_news(query, load_api_key())
-    print(f'found {data["totalResults"]} total results ')
+    articles = extract_articles(fetch_news(query, load_api_key()))
+    print(json.dumps(articles, indent = 4))
