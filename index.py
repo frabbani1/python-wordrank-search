@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import time
 
 import requests
 from dotenv import load_dotenv
@@ -36,16 +37,29 @@ def extract_articles(raw_json):
         return articles
 
 
-if __name__ == "__main__":
-    query = input("Enter your search query: ")
-    articles = extract_articles(fetch_news(query, load_api_key()))
-    news = News.News(
-        articles,
-    )
-    news.save_articles()
-    news.close_connection()
+def get_topics():
+    topics = []
+    while True:
+        topic = input("Enter topic: press q to quit: ")
+        if topic.lower() == "q":
+            break
+        topics.append(topic)
 
-    print(f"saved {len(articles)} articles to the database")
+    return topics
+
+
+if __name__ == "__main__":
+    topics = get_topics()
+    articles = []
+    for topic in topics:
+        articles.extend(extract_articles(fetch_news(topic, load_api_key())))
+        news = News.News(
+            articles,
+        )
+        news.save_articles()
+        news.close_connection()
+        print(f"saved {len(articles)} articles to the database")
+        time.sleep(1)
 
     conn = sqlite3.connect("news.db")
     for r in conn.execute("SELECT * FROM articles"):
