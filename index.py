@@ -92,7 +92,6 @@ def make_charts(db):
     df = pd.read_sql_query("SELECT * FROM articles", conn)
     rows = conn.execute("SELECT * FROM articles").fetchall()
 
-
     if df.empty:
         print("No articles found in the database")
         return
@@ -125,6 +124,46 @@ def make_charts(db):
     plt.close()
 
 
+def word_frequency(db):
+    conn = sqlite3.connect(db)
+    df = pd.read_sql_query("SELECT * FROM articles", conn)
+
+    if df.empty:
+        print("No articles found in the databse.")
+        return
+
+    words = df["title"].str.lower().str.split().explode()
+    # common words to void out when tracking words
+    stopwords = {
+        "the",
+        "a",
+        "an",
+        "to",
+        "of",
+        "in",
+        "on",
+        "for",
+        "and",
+        "is",
+        "with",
+        "at",
+        "by",
+        "as",
+        "it",
+        "that",
+    }
+    words = words[~words.isin(stopwords)].value_counts().head(15)
+
+    words.plot(kind="barh", title="Most common words in titles")
+    plt.title("Article words")
+    plt.xlabel("Frequency")
+    plt.ylabel("words")
+    plt.gca().invert_yaxis()
+    plt.tight_layout()
+    plt.savefig("most_frequent_words.png")
+    plt.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="News Fetcher")
     parser.add_argument(
@@ -147,6 +186,12 @@ if __name__ == "__main__":
         "--charts",
         action="store_true",
         help="Generates charts for articles with and without keywords and title length distribution",
+    )
+
+    parser.add_argument(
+        "--words",
+        action="store_true",
+        help="Displays graph of most freuqent number of words excluding filler words",
     )
 
     args = parser.parse_args()
@@ -175,9 +220,12 @@ if __name__ == "__main__":
     elif args.charts:
         make_charts("news.db")
 
+    elif args.words:
+        word_frequency("news.db")
+
     else:
         print(
-            "No action provided. Use --fetch, --report or --pandas-report, or --charts"
+            "No action provided. Use --fetch, --report or --pandas-report, or --charts or words"
         )
 
     db.close()
