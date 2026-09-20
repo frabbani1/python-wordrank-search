@@ -3,6 +3,7 @@ import os
 import sqlite3
 import time
 
+import matloptlib.pyplot as plt
 import pandas as pd
 import requests
 from dotenv import load_dotenv
@@ -86,6 +87,40 @@ def report_pandas(db):
     print(df["keywords"].notna().sum())
 
 
+def make_charts(db):
+    conn = sqlite3.connect(db)
+    df = pd.read_sql_query("SELECT * FROM articles", conn)
+
+    if df.empty:
+        print("No articles found in the database")
+        return
+
+    has_keywords = df["keywords"].notna().value_counts()
+    has_keywords.index = (
+        ["has keywords", "no keywords"]
+        if True in has_keywords.index
+        else has_keywords.index
+    )
+
+    # chart 1: Bar chart for articles with and without keywords
+    has_keywords.plot(kind="bar", color=["green", "red"])
+    plt.title("Articles with and without keywords")
+    plt.ylabel("Number of articles")
+    plt.tight_layout()
+    plt.savefig("articles_with_without_keywords.png")
+    plt.close()
+
+    # chart 2: histogram of number title length distribution
+    df["title_length"] = df["title"].str.len()
+    plt.title("Article title length distribution")
+    plt.xlabel("Title length")
+    plt.ylabel("Number of articles")
+    plt.hist(df["title_length"], bins=20, color="blue", edgecolor="black")
+    plt.tight_layout()
+    plt.savefig("article_title_length_distribution.png")
+    plt.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="News Fetcher")
     parser.add_argument(
@@ -103,6 +138,11 @@ if __name__ == "__main__":
         "--pandas-report",
         action="store_true",
         help="Prints out number of articles, number of articles per topic, and number of articles per source (top 5) using pandas",
+    )
+    parser.add_argument(
+        "--charts",
+        action="store_true",
+        help="Generates charts for articles with and without keywords and title length distribution",
     )
 
     args = parser.parse_args()
@@ -128,7 +168,12 @@ if __name__ == "__main__":
     elif args.pandas_report:
         report_pandas("news.db")
 
+    elif args.charts:
+        make_charts("news.db")
+
     else:
-        print("No action provided. Use --fetch, --report or --pandas-report.")
+        print(
+            "No action provided. Use --fetch, --report or --pandas-report, or --charts"
+        )
 
     db.close()
