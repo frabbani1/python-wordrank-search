@@ -3,7 +3,7 @@ import os
 import sqlite3
 import time
 
-import matloptlib.pyplot as plt
+import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 from dotenv import load_dotenv
@@ -90,6 +90,8 @@ def report_pandas(db):
 def make_charts(db):
     conn = sqlite3.connect(db)
     df = pd.read_sql_query("SELECT * FROM articles", conn)
+    rows = conn.execute("SELECT * FROM articles").fetchall()
+
 
     if df.empty:
         print("No articles found in the database")
@@ -111,11 +113,13 @@ def make_charts(db):
     plt.close()
 
     # chart 2: histogram of number title length distribution
+    length = [len(row[2]) for row in rows]
+
     df["title_length"] = df["title"].str.len()
     plt.title("Article title length distribution")
     plt.xlabel("Title length")
     plt.ylabel("Number of articles")
-    plt.hist(df["title_length"], bins=20, color="blue", edgecolor="black")
+    plt.hist(length, bins=range(40, 110, 10), color="blue", edgecolor="black")
     plt.tight_layout()
     plt.savefig("article_title_length_distribution.png")
     plt.close()
