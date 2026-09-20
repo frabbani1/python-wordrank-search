@@ -1,3 +1,4 @@
+import argparse
 import os
 import sqlite3
 import time
@@ -48,9 +49,7 @@ def get_topics():
     return topics
 
 
-if __name__ == "__main__":
-    topics = get_topics()
-    articles = []
+def run_topics(topics, articles):
     for topic in topics:
         articles.extend(extract_articles(fetch_news(topic, load_api_key())))
         news = News.News(
@@ -61,7 +60,52 @@ if __name__ == "__main__":
         print(f"saved {len(articles)} articles to the database")
         time.sleep(1)
 
+
+def print_report():
     conn = sqlite3.connect("news.db")
-    for r in conn.execute("SELECT * FROM articles"):
-        print(r)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM articles")
+    rows = cursor.fetchall()
+    for row in rows:
+        print(row)
     conn.close()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="News Fetcher")
+    parser.add_argument(
+        "--fetch",
+        action="store_true",
+        help="Fetches all news articles based on topic --topic provided",
+    )
+    parser.add_argument(
+        "--report", action="store_true", help="Prints out all articles in the datadase"
+    )
+    parser.add_argument(
+        "--topic", type=str, help="Topic(s) to fetch news for, seperated by commas"
+    )
+
+    args = parser.parse_args()
+
+    api_key = load_api_key()
+    db = sqlite3.connect("news.db")
+
+    if args.fetch:
+        if args.topic:
+            topics = [topic.strip() for topic in args.topic.split(",")]
+        else:
+            topics = get_topics()
+
+        if not topics:
+            print("No topics provided")
+        else:
+            articles = []
+            run_topics(topics, articles)
+
+    elif args.report:
+        print_report()
+
+    else:
+        print("No action provided. Use --fetch or --report.")
+
+    db.close()
