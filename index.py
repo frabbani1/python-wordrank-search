@@ -7,6 +7,7 @@ import requests
 from dotenv import load_dotenv
 
 import News
+import pandas as pd
 
 
 # loads up the api key
@@ -70,6 +71,22 @@ def print_report():
         print(row)
     conn.close()
 
+def report_pandas(db):
+    conn = sqlite3.connect(db)
+    df = pd.read_sql_query("SELECT * FROM articles", conn)
+
+    if df.empty:
+        print("No articles found in the database.")
+
+    print("Total articles in the database:", len(df))
+    print("Article(s) sample titles :")
+    print(df["title"].head(5))
+    print("number of articles with non-empty keywords:")
+    print(df["keywords"].notna().sum())
+
+
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="News Fetcher")
@@ -84,6 +101,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--topic", type=str, help="Topic(s) to fetch news for, seperated by commas"
     )
+    parser.add_argument("--pandas-report", action = "store_true", help = "Prints out number of articles, number of articles per topic, and number of articles per source (top 5) using pandas")
 
     args = parser.parse_args()
 
@@ -105,7 +123,10 @@ if __name__ == "__main__":
     elif args.report:
         print_report()
 
+    elif args.pandas_report:
+        report_pandas("news.db")
+
     else:
-        print("No action provided. Use --fetch or --report.")
+        print("No action provided. Use --fetch, --report or --pandas-report.")
 
     db.close()
