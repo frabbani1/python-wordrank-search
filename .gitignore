@@ -2,4 +2,4 @@
 .env
 __pycache__/
 output.json
-.png
+*.png
