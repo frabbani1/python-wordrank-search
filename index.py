@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
+import schedule
 from dotenv import load_dotenv
 
 import News
@@ -164,6 +165,22 @@ def word_frequency(db):
     plt.close()
 
 
+def load_topics(file):
+    with open(file) as f:
+        topics = [line.strip() for line in f if line.strip()]
+    return topics
+
+
+def daily_job(db, file_path):
+    topics = load_topics(file_path)
+    articles = extract_articles()
+    run_topics(topics, articles)
+    print_report()
+    report_pandas(db)
+    make_charts(db)
+    word_frequency(db)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="News Fetcher")
     parser.add_argument(
@@ -194,6 +211,20 @@ if __name__ == "__main__":
         help="Displays graph of most freuqent number of words excluding filler words",
     )
 
+    parser.add_argument(
+        "--schedule",
+        action="store_true",
+        help="Schedules the topics, run report, pandas report, make charts, and specific data extraction at a specific time 8:00 am",
+    )
+    parser.add_argument(
+        "--repeat",
+        nargs="?",
+        const="8:00",
+        default=None,
+        metavar="TIME",
+        help="repeats daily schedule based on 24 clock time",
+    )
+
     args = parser.parse_args()
 
     api_key = load_api_key()
@@ -222,10 +253,19 @@ if __name__ == "__main__":
 
     elif args.words:
         word_frequency("news.db")
+    elif args.schedule:
+        daily_job("news.db", "input.txt")
+    elif args.repeat:
+        schedule.every().day.at(args.schedule).do.daily(
+            daily_job, "news.db", "input.txt"
+        )
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
 
     else:
         print(
-            "No action provided. Use --fetch, --report or --pandas-report, or --charts or words"
+            "No action provided. Use --fetch, --report or --pandas-report, or --charts or --words or --schedule"
         )
 
     db.close()
