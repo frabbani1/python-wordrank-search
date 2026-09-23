@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Pulse Dashboard</title>
+    <link rel="stylesheet" href="{{url_for('static', filename = 'style.css')}}">
+</head>
+
+<body>
+    <h1>News Pulse Dashboard</h1>
+    <p> <strong> Total articles: </strong> {{ total }}</p>
+    <h2> Top Words In Titles</h2>
+    <ul> {% for word, count in top_words.items() %}
+        <li> {{ word }}:{{ count }}</li>
+        {% endfor %}
+    </ul>
+    <h2> Charts </h2>
+    <img src = "/chart/article_title_length_distribution.png" width = "400"> 
+    <img src = "/chart/articles_with_without_keywords.png" width = "400">
+    <img src = "/chart/most_frequent_words.png" width = "400"> 
+    <script src = "{{ url_for('static', filename = 'script.js') }}"></script>
+
+</body>
+</html>

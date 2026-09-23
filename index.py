@@ -8,6 +8,7 @@ import pandas as pd
 import requests
 import schedule
 from dotenv import load_dotenv
+from flask import Flask, render_template, send_from_directory
 
 import News
 
@@ -38,7 +39,7 @@ def extract_articles(raw_json):
                 "keywords": article["keywords"],
             }
         )
-        return articles
+    return articles
 
 
 def get_topics():
@@ -113,7 +114,7 @@ def make_charts(db):
     plt.close()
 
     # chart 2: histogram of number title length distribution
-    length = [len(row[2]) for row in rows]
+    length = df["title"].dropna().str.len()
 
     df["title_length"] = df["title"].str.len()
     plt.title("Article title length distribution")
@@ -173,12 +174,50 @@ def load_topics(file):
 
 def daily_job(db, file_path):
     topics = load_topics(file_path)
-    articles = extract_articles()
+    articles = []
     run_topics(topics, articles)
     print_report()
     report_pandas(db)
     make_charts(db)
     word_frequency(db)
+
+
+app = Flask(__name__)
+
+
+@app.route("/")
+def dashboard():
+    conn = sqlite3.connect("news.db")
+    df = pd.read_sql_query("SELECT * FROM articles", conn)
+    total = len(df)
+    words = df["title"].str.lower().str.split().explode()
+    stopwords = {
+        "the",
+        "a",
+        "an",
+        "to",
+        "of",
+        "in",
+        "on",
+        "for",
+        "and",
+        "is",
+        "with",
+        "at",
+        "by",
+        "as",
+        "it",
+        "that",
+    }
+    words = words[~words.isin(stopwords)]
+    top_words = words.value_counts().head(10)
+    conn.close()
+    return render_template("dashboard.html", total=total, top_words=top_words)
+
+
+@app.route("/chart/<filename>")
+def chart(filename):
+    return send_from_directory(".", filename)
 
 
 if __name__ == "__main__":
@@ -225,6 +264,8 @@ if __name__ == "__main__":
         help="repeats daily schedule based on 24 clock time",
     )
 
+    parser.add_argument("--web", action="store_true", help="Launches web dashboard")
+
     args = parser.parse_args()
 
     api_key = load_api_key()
@@ -256,12 +297,14 @@ if __name__ == "__main__":
     elif args.schedule:
         daily_job("news.db", "input.txt")
     elif args.repeat:
-        schedule.every().day.at(args.schedule).do.daily(
+        schedule.every().day.at(args.repeat.zfill(5)).do(
             daily_job, "news.db", "input.txt"
         )
         while True:
             schedule.run_pending()
             time.sleep(60)
+    elif args.web:
+        app.run(debug=True)
 
     else:
         print(
