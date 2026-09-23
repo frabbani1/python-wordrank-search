@@ -92,7 +92,6 @@ def report_pandas(db):
 def make_charts(db):
     conn = sqlite3.connect(db)
     df = pd.read_sql_query("SELECT * FROM articles", conn)
-    rows = conn.execute("SELECT * FROM articles").fetchall()
 
     if df.empty:
         print("No articles found in the database")
